@@ -1,0 +1,10 @@
+name: Brawl
+api-version: 1.17
+version: 0.1
+author: Woukie
+main: org.woukie.brawl.Main
+description: For the BattleCraft server
+commands:
+  brawl:
+    aliases: [br]
+    description: Set up the brawl server
