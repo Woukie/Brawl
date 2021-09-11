@@ -24,14 +24,15 @@ public class BrawlCommand implements CommandExecutor {
 			return false;
 		}
 		
+		if (!(sender instanceof Player)) {
+			sender.sendMessage("This command can only be ran by a player!");
+			return false;
+		}
+		
 		switch (args[0].toLowerCase()) {
 			case "manage":
-				if (!(sender instanceof Player)) {
-					sender.sendMessage("This command can only be ran by a player!");
-					return false;
-				}
 				
-				pluginMain.manager.openManager(sender);
+				pluginMain.gameManager.openManager(sender);
 				break;
 				
 			case "team":
