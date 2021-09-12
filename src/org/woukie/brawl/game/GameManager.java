@@ -26,7 +26,7 @@ public class GameManager implements Listener{
 	private String eventButtonLore = ChatColor.GREEN + "Change how the game plays!";
 	private String teamsButtonLore = ChatColor.GREEN + "Review teams";
 
-	private int teamsPage;
+	//private int teamsPage;
 	
 	public GameManager(Plugin pluginMain) {
 		Bukkit.getPluginManager().registerEvents(this, pluginMain);
