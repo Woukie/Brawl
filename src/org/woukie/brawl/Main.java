@@ -26,7 +26,7 @@ public final class Main extends JavaPlugin {
 	
 	@Override
 	public void onDisable() {
-		SQLManager.Quit();
+		SQLManager.quit();
 		logger.log(Level.INFO, "[Brawl] Brawl v0.1 by Woukie saved and disabled.");
 	}
 }

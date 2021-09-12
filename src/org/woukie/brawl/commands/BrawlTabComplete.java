@@ -22,16 +22,19 @@ public class BrawlTabComplete implements TabCompleter {
 				ArrayList<String> a = new ArrayList<String>();
 				a.add("manage");
 				a.add("pedestal");
-				a.add("teams");
+				a.add("team");
+				a.add("points");
 				
 				return a;
 			}
 			
-			if (args.length == 2 && args[0].equals("teams")) {
+			if (args.length == 2 && args[0].equals("team")) {
 				ArrayList<String> a = new ArrayList<String>();
 				a.add("create");
 				a.add("join");
 				a.add("leave");
+				a.add("promote");
+				a.add("invite");
 				
 				return a;
 			}
@@ -40,6 +43,15 @@ public class BrawlTabComplete implements TabCompleter {
 				ArrayList<String> a = new ArrayList<String>();
 				a.add("create");
 				a.add("delete");
+				
+				return a;
+			}
+			
+			if (args.length == 3 && args[0].equals("points")) {
+				ArrayList<String> a = new ArrayList<String>();
+				a.add("set");
+				a.add("add");
+				a.add("reduce");
 				
 				return a;
 			}
