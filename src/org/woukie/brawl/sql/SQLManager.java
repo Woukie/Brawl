@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -42,23 +43,23 @@ public class SQLManager implements Listener {
 	}
 	
 	public void addPoints(Player player, Integer points) {
-		
+		data.addPoints(player.getUniqueId(), points);
 	}
 	
 	public void setPoints(Player player, Integer points) {
-		
+		data.addPoints(player.getUniqueId(), -data.getPoints(player.getUniqueId()) + points);
 	}
 	
 	public String getTeam(Player player) {
-		return "";
+		return data.getTeam(player.getUniqueId());
 	}
 	
 	public void setPlayersTeam(Player player, String name) {
-		
+		data.setTeam(player.getUniqueId(), name);
 	}
 	
-	public void setLeader(Player player, boolean leader) {
-		
+	public void setLeader(Player player, Boolean leader) {
+		data.setLeader(player.getUniqueId(), leader);
 	}
 	
 	public boolean checkTeamExists(String team) {
@@ -66,10 +67,19 @@ public class SQLManager implements Listener {
 	}
 	
 	public int countLeaders(String team) {
-		return 0;
+		return data.countLeaders(team);
+	}
+	
+	public int countMembers(String team) { // Includes leaders
+		return data.countMembers(team);
 	}
 	
 	public void promoteFirstMemberInTeam(String team) {
-		
+		Player player = Bukkit.getPlayer(data.getFirstPlayer(team));
+		setLeader(player, true);
+	}
+	
+	public boolean checkLeader(Player player) {
+		return data.checkIfLeader(player.getUniqueId());
 	}
 }
