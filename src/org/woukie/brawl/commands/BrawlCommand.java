@@ -155,10 +155,10 @@ public class BrawlCommand implements CommandExecutor {
 					break;
 				case "invite": 
 					if (args.length == 3) { // Must have all arguments
-						if (players.contains(args[2])) { // Invited player must exist
+						if (!pluginMain.SQLManager.getTeam((Player) sender).equals("") ) { // Sender must be in a team
 							if (!args[2].equals(sender.getName())) { // Sender can't invite themselves
 								if (pluginMain.SQLManager.checkLeader((Player) sender)) { // Sender must be a leader
-									if (!pluginMain.SQLManager.getTeam((Player) sender).equals("")) { // Sender must be in a team
+									if (players.contains(args[2])) { // Invited player must exist 
 										Player invited = Bukkit.getPlayer(args[2]);
 										if (pluginMain.SQLManager.getTeam(invited).equals("")) { // Other player must not be in a team
 											
@@ -184,7 +184,7 @@ public class BrawlCommand implements CommandExecutor {
 											sendError(sender, UsageErrors.THEYALREADYINTEAM);
 										}
 									} else {
-										sendError(sender, UsageErrors.NOTINTEAM);
+										sendError(sender, UsageErrors.NONEXISTENTPLAYER);
 									}
 								} else {
 									sendError(sender, UsageErrors.NOTLEADER);
@@ -193,7 +193,7 @@ public class BrawlCommand implements CommandExecutor {
 								sendError(sender, UsageErrors.CANNOTPERFORMONSELF);
 							}
 						} else {
-							sendError(sender, UsageErrors.NONEXISTENTPLAYER);
+							sendError(sender, UsageErrors.NOTINTEAM);
 						}
 					} else {
 						sendError(sender, UsageErrors.INVITE);
