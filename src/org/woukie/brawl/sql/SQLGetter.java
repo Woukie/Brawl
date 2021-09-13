@@ -3,6 +3,7 @@ package org.woukie.brawl.sql;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
@@ -202,5 +203,24 @@ public class SQLGetter {
 		}
 		
 		return false;
+	}
+	
+	public ArrayList<UUID> getPlayers(String team) {
+		ArrayList<UUID> uuids = new ArrayList<UUID>();
+		
+		try {
+			PreparedStatement ps = SQLManager.SQL.getConnection().prepareStatement("SELECT UUID FROM teams WHERE TEAM=?");
+			ps.setString(1, team);
+			ResultSet rs = ps.executeQuery();
+			
+			while (rs.next()) {
+				uuids.add(UUID.fromString(rs.getString(1)));
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return uuids;
 	}
 }

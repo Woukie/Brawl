@@ -15,7 +15,7 @@ import org.woukie.brawl.Main;
 
 public class BrawlCommand implements CommandExecutor {
 	String prefix = ChatColor.GREEN + "[BR] " + ChatColor.RESET;
-	Map<Player, String> invitations;
+	Map<String, String> invitations; // UUID, team
 	
 	public enum UsageErrors {
 		ROOT, POINTS, WRONGSENDER, NONEXISTENTPLAYER, ALREADYINTEAM, TEAM, TEAMCREATE, TEAMALREADYEXISTS, ALREADYNOTINTEAM, NOTLEADER, NOTINVITED, NOTINTEAM, INVITE, CANNOTPERFORMONSELF, PROMOTE, THEYALREADYINTEAM, NOTSAMETEAM
@@ -24,7 +24,7 @@ public class BrawlCommand implements CommandExecutor {
 	private Main pluginMain;
 	
 	public BrawlCommand(Main _pluginMain) {
-		invitations = new HashMap<Player, String>();
+		invitations = new HashMap<String, String>();
 		pluginMain = _pluginMain;
 		pluginMain.getCommand("brawl").setExecutor(this);
 	}
@@ -63,29 +63,29 @@ public class BrawlCommand implements CommandExecutor {
 				
 				switch (args[1]) {
 				case "create":
-					if (args.length != 3) {
+					if (args.length == 3) { // Must have typed command correctly
+						if (pluginMain.SQLManager.getTeam((Player) sender).equals("")) { // Cannot be in a team
+							if (!pluginMain.SQLManager.checkTeamExists(args[2]) || args[2].equals("")) { // Team cannot exist already
+								
+								pluginMain.SQLManager.setPlayersTeam((Player) sender, args[2]);
+								pluginMain.SQLManager.setLeader((Player) sender, true);
+								
+								sender.sendMessage(prefix + "Created team " + args[2]);
+								
+							} else {
+								sendError(sender, UsageErrors.TEAMALREADYEXISTS);
+							}
+						} else {
+							sendError(sender, UsageErrors.ALREADYINTEAM);
+						}
+					} else {
 						sendError(sender, UsageErrors.TEAMCREATE);
-						return false;
 					}
-					
-					if(!pluginMain.SQLManager.getTeam((Player) sender).equals("")) {
-						sendError(sender, UsageErrors.ALREADYINTEAM);
-						return false;
-					}
-					
-					if (pluginMain.SQLManager.checkTeamExists(args[2]) || args[2].equals("")) {
-						sendError(sender, UsageErrors.TEAMALREADYEXISTS);
-						return false;
-					}
-					
-					pluginMain.SQLManager.setPlayersTeam((Player) sender, args[2]);
-					pluginMain.SQLManager.setLeader((Player) sender, true);
-					
-					sender.sendMessage(prefix + "Created team " + args[2]);
 					
 					break;
-				case "leave": // Leave team, if player is only leader, make random member leader
+				case "leave": // If player is only leader, make random member leader
 					String oldTeam = pluginMain.SQLManager.getTeam((Player) sender);
+					
 					if (oldTeam.equals("")) {
 						sendError(sender, UsageErrors.ALREADYNOTINTEAM);
 						return false;
@@ -97,7 +97,7 @@ public class BrawlCommand implements CommandExecutor {
 					sender.sendMessage(prefix + "Left team " + oldTeam);
 					
 					if (pluginMain.SQLManager.countMembers(oldTeam) == 0) { // In the case of disbanding, remove invitations
-						for (Entry<Player, String> entry : invitations.entrySet()) {
+						for (Entry<String, String> entry : invitations.entrySet()) {
 							if (entry.getValue().equals(oldTeam)) invitations.remove(entry.getKey());
 						}
 						
@@ -107,7 +107,7 @@ public class BrawlCommand implements CommandExecutor {
 					
 					break;
 				case "join":
-					if (!invitations.containsKey((Player) sender)) { // If they were invited
+					if (!invitations.containsKey(((Player) sender).getUniqueId().toString())) { // If they were invited
 						sendError(sender, UsageErrors.NOTINVITED);
 						return false;
 					}
@@ -117,15 +117,19 @@ public class BrawlCommand implements CommandExecutor {
 						return false;
 					}
 					
-					sender.sendMessage(prefix + "Joined team " + invitations.get((Player) sender) + "!");
-					pluginMain.SQLManager.setPlayersTeam((Player) sender, invitations.get((Player) sender));
+					String teamJoining = invitations.get(((Player) sender).getUniqueId().toString());
+					
+					sender.sendMessage(prefix + "Joined team " + teamJoining + "!"); // Confirmation message to sender
+					pluginMain.SQLManager.sendToAll(prefix + sender.getName() + " joined the team!", teamJoining); // Notify team
+					pluginMain.SQLManager.setPlayersTeam((Player) sender, teamJoining); // Set team
+					invitations.remove(((Player) sender).getUniqueId().toString()); // Remove from list
 					
 					break;
-				case "promote": //TODO: case when other player is already promoted, tweak order
-					if (args.length == 3) { // Must have all arguments
-						if (players.contains(args[2])) { // Player must exist
+				case "promote": 
+					if (pluginMain.SQLManager.checkLeader((Player) sender)) { // Sender has to be a leader
+						if (args.length == 3) { // Must have all arguments
 							if (!args[2].equals(sender.getName())) { // Cannot promote themselves
-								if (pluginMain.SQLManager.checkLeader((Player) sender)) { // Sender has to be a leader
+								if (players.contains(args[2])) { // Player must exist
 									Player promotePlayer = Bukkit.getPlayer(args[2]);
 									if (pluginMain.SQLManager.getTeam(promotePlayer).equals(pluginMain.SQLManager.getTeam((Player) sender))) { // Players must share same team
 										
@@ -136,16 +140,16 @@ public class BrawlCommand implements CommandExecutor {
 										sendError(sender, UsageErrors.NOTSAMETEAM);
 									}
 								} else {
-									sendError(sender, UsageErrors.NOTLEADER);
+									sendError(sender, UsageErrors.NONEXISTENTPLAYER);
 								}
 							} else {
 								sendError(sender, UsageErrors.CANNOTPERFORMONSELF);
 							}
 						} else {
-							sendError(sender, UsageErrors.NONEXISTENTPLAYER);
+							sendError(sender, UsageErrors.PROMOTE);
 						}
 					} else {
-						sendError(sender, UsageErrors.PROMOTE);
+						sendError(sender, UsageErrors.NOTLEADER);
 					}
 					
 					break;
@@ -159,7 +163,7 @@ public class BrawlCommand implements CommandExecutor {
 										if (pluginMain.SQLManager.getTeam(invited).equals("")) { // Other player must not be in a team
 											
 											String team = pluginMain.SQLManager.getTeam((Player) sender);
-											invitations.put(invited, team);
+											invitations.put(invited.getUniqueId().toString(), team);
 											sender.sendMessage(prefix + "Invited player " + args[2] + " to " + team);
 											invited.sendMessage(prefix + sender.getName() + " inviated you to team " + team);
 											
@@ -167,8 +171,10 @@ public class BrawlCommand implements CommandExecutor {
 										        new java.util.TimerTask() {
 										            @Override
 										            public void run() {
-										            	invitations.remove(invited);
-										                sender.sendMessage(prefix + "Invite to " + args[2] + " timed out!");
+										            	if (invitations.containsKey(invited.getUniqueId().toString())) {
+										            		invitations.remove(invited.getUniqueId().toString());
+											                sender.sendMessage(prefix + "Invite to " + args[2] + " timed out!");
+										            	}
 										            }
 										        }, 
 										        5000

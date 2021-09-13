@@ -1,5 +1,5 @@
 name: Brawl
-api-version: 1.17
+api-version: 1.16
 version: 0.1
 author: Woukie
 main: org.woukie.brawl.Main

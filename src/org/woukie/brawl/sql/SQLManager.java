@@ -1,6 +1,8 @@
 package org.woukie.brawl.sql;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,11 +77,19 @@ public class SQLManager implements Listener {
 	}
 	
 	public void promoteFirstMemberInTeam(String team) {
-		Player player = Bukkit.getPlayer(data.getFirstPlayer(team));
+		Player player = Bukkit.getPlayer(UUID.fromString(data.getFirstPlayer(team)));
 		setLeader(player, true);
 	}
 	
 	public boolean checkLeader(Player player) {
 		return data.checkIfLeader(player.getUniqueId());
+	}
+	
+	public void sendToAll(String message, String team) {
+		ArrayList<UUID> players = data.getPlayers(team);
+		
+		for(UUID uuid : players) {
+			Bukkit.getPlayer(uuid).sendMessage(message);
+		}
 	}
 }
