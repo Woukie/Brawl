@@ -37,7 +37,7 @@ public class SQLManager implements Listener {
 	
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
-		data.createPlayer(event.getPlayer());
+		data.createPlayer(event.getPlayer().getUniqueId());
 	}
 	
 	public void quit() {
@@ -91,5 +91,17 @@ public class SQLManager implements Listener {
 		for(UUID uuid : players) {
 			Bukkit.getPlayer(uuid).sendMessage(message);
 		}
+	}
+	
+//	public int countTeams() {
+//		return data.countTeams();
+//	}
+	
+	public ArrayList<String> getTeams() {
+		return data.getTeams();
+	}
+	
+	public Player getLeader(String team) {
+		return Bukkit.getPlayer(data.getFirstLeader(team));
 	}
 }

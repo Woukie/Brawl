@@ -6,8 +6,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import org.bukkit.entity.Player;
-
 public class SQLGetter {
 	
 	private SQLManager SQLManager;
@@ -27,14 +25,13 @@ public class SQLGetter {
 		}
 	}
 	
-	public void createPlayer(Player player) {
+	public void createPlayer(UUID player) {
 		try {
-			UUID uuid = player.getUniqueId();
 			
-			if (!exists(uuid)) { // if does not exist create new entry
+			if (!exists(player)) { // if does not exist create new entry
 				PreparedStatement ps2 = SQLManager.SQL.getConnection().prepareStatement("INSERT IGNORE INTO teams "
 						+ "(UUID,POINTS,TEAM,LEADER) VALUES (?,?,?,?)");
-				ps2.setString(1, uuid.toString());
+				ps2.setString(1, player.toString());
 				ps2.setInt(2, 0);
 				ps2.setString(3, "");
 				ps2.setInt(4, 0);
@@ -171,7 +168,7 @@ public class SQLGetter {
 		return 0;
 	}
 	
-	public String getFirstPlayer(String team) { // Returns UUID of player in string form
+	public String getFirstPlayer(String team) { // Returns UUID of player in string form (Includes already leaders)
 		try {
 			PreparedStatement ps = SQLManager.SQL.getConnection().prepareStatement("SELECT UUID FROM teams WHERE TEAM=?");
 			ps.setString(1, team);
@@ -222,5 +219,60 @@ public class SQLGetter {
 		}
 		
 		return uuids;
+	}
+//	
+//	public int countTeams() { // For listing teams
+//		try {
+//			PreparedStatement ps = SQLManager.SQL.getConnection().prepareStatement("SELECT COUNT(*) FROM teams WHERE TEAM!=?");
+//			ps.setString(1, "");
+//			ResultSet rs = ps.executeQuery();
+//			
+//			rs.next();
+//			
+//			return rs.getInt(1);
+//			
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		return 0;
+//	}
+	
+	public ArrayList<String> getTeams() { // For listing teams
+		ArrayList<String> teams = new ArrayList<String>();
+		
+		try {
+			PreparedStatement ps = SQLManager.SQL.getConnection().prepareStatement("SELECT TEAM FROM teams WHERE TEAM!=?");
+			ps.setString(1, "");
+			ResultSet rs = ps.executeQuery();
+			
+			while (rs.next()) {
+				String team = rs.getString(1);
+				if (!teams.contains(team)) teams.add(team);
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return teams;
+	}
+	
+	public UUID getFirstLeader(String team) { // For listing teams
+		try {
+			PreparedStatement ps = SQLManager.SQL.getConnection().prepareStatement("SELECT UUID FROM teams WHERE TEAM=? AND LEADER=?");
+			ps.setString(1, team);
+			ps.setInt(2, 1);
+			ResultSet rs = ps.executeQuery();
+			
+			rs.next();
+			
+			return UUID.fromString(rs.getString(1));
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return UUID.fromString(""); // TODO: Handle exception
 	}
 }

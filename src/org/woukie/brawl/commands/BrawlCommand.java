@@ -18,7 +18,7 @@ public class BrawlCommand implements CommandExecutor {
 	Map<String, String> invitations; // UUID, team
 	
 	public enum UsageErrors {
-		ROOT, POINTS, WRONGSENDER, NONEXISTENTPLAYER, ALREADYINTEAM, TEAM, TEAMCREATE, TEAMALREADYEXISTS, ALREADYNOTINTEAM, NOTLEADER, NOTINVITED, NOTINTEAM, INVITE, CANNOTPERFORMONSELF, PROMOTE, THEYALREADYINTEAM, NOTSAMETEAM
+		ROOT, POINTS, WRONGSENDER, NONEXISTENTPLAYER, ALREADYINTEAM, TEAM, TEAMCREATE, TEAMALREADYEXISTS, ALREADYNOTINTEAM, NOTLEADER, NOTINVITED, NOTINTEAM, INVITE, CANNOTPERFORMONSELF, PROMOTE, THEYALREADYINTEAM, NOTSAMETEAM, TEAMKICK, THEYLEADER
 	}
 	
 	private Main pluginMain;
@@ -83,46 +83,48 @@ public class BrawlCommand implements CommandExecutor {
 					}
 					
 					break;
-				case "leave": // If player is only leader, make random member leader
+				case "leave":
 					String oldTeam = pluginMain.SQLManager.getTeam((Player) sender);
 					
-					if (oldTeam.equals("")) {
-						sendError(sender, UsageErrors.ALREADYNOTINTEAM);
-						return false;
-					}
-					
-					pluginMain.SQLManager.setLeader((Player) sender, false);
-					pluginMain.SQLManager.setPlayersTeam((Player) sender, "");
-					
-					sender.sendMessage(prefix + "Left team " + oldTeam);
-					
-					if (pluginMain.SQLManager.countMembers(oldTeam) == 0) { // In the case of disbanding, remove invitations
-						for (Entry<String, String> entry : invitations.entrySet()) {
-							if (entry.getValue().equals(oldTeam)) invitations.remove(entry.getKey());
-						}
+					if (!oldTeam.equals("")) { // Player must be in a team
+						pluginMain.SQLManager.setLeader((Player) sender, false);
+						pluginMain.SQLManager.setPlayersTeam((Player) sender, "");
 						
-						return false;
+						sender.sendMessage(prefix + "Left team " + oldTeam);
+						pluginMain.SQLManager.sendToAll(prefix + sender.getName() + " left the team", oldTeam);
+						
+						if (pluginMain.SQLManager.countMembers(oldTeam) == 0) { // In the case of disbanding, remove invitations so invited players dont join empty team
+							for (Entry<String, String> entry : invitations.entrySet()) {
+								if (entry.getValue().equals(oldTeam)) invitations.remove(entry.getKey());
+							}
+							
+							return false;
+						}
+						if (pluginMain.SQLManager.countLeaders(oldTeam) == 0) pluginMain.SQLManager.promoteFirstMemberInTeam(oldTeam);
+						
+					} else {
+						sendError(sender, UsageErrors.ALREADYNOTINTEAM);
 					}
-					if (pluginMain.SQLManager.countLeaders(oldTeam) == 0) pluginMain.SQLManager.promoteFirstMemberInTeam(oldTeam);
+					
 					
 					break;
 				case "join":
-					if (!invitations.containsKey(((Player) sender).getUniqueId().toString())) { // If they were invited
+					if (invitations.containsKey(((Player) sender).getUniqueId().toString())) { // If they were invited
+						if (pluginMain.SQLManager.getTeam((Player) sender).equals("")) { // If they aren't in a team
+							
+							String teamJoining = invitations.get(((Player) sender).getUniqueId().toString());
+							
+							sender.sendMessage(prefix + "Joined team " + teamJoining + "!"); // Confirmation message to sender
+							pluginMain.SQLManager.sendToAll(prefix + sender.getName() + " joined the team!", teamJoining); // Notify team
+							pluginMain.SQLManager.setPlayersTeam((Player) sender, teamJoining); // Set team
+							invitations.remove(((Player) sender).getUniqueId().toString()); // Remove from list
+							
+						} else {
+							sendError(sender, UsageErrors.ALREADYINTEAM);
+						}
+					} else {
 						sendError(sender, UsageErrors.NOTINVITED);
-						return false;
 					}
-					
-					if (!pluginMain.SQLManager.getTeam((Player) sender).equals("")) { // If they aren't in a team
-						sendError(sender, UsageErrors.ALREADYINTEAM);
-						return false;
-					}
-					
-					String teamJoining = invitations.get(((Player) sender).getUniqueId().toString());
-					
-					sender.sendMessage(prefix + "Joined team " + teamJoining + "!"); // Confirmation message to sender
-					pluginMain.SQLManager.sendToAll(prefix + sender.getName() + " joined the team!", teamJoining); // Notify team
-					pluginMain.SQLManager.setPlayersTeam((Player) sender, teamJoining); // Set team
-					invitations.remove(((Player) sender).getUniqueId().toString()); // Remove from list
 					
 					break;
 				case "promote": 
@@ -132,6 +134,8 @@ public class BrawlCommand implements CommandExecutor {
 								if (players.contains(args[2])) { // Player must exist
 									Player promotePlayer = Bukkit.getPlayer(args[2]);
 									if (pluginMain.SQLManager.getTeam(promotePlayer).equals(pluginMain.SQLManager.getTeam((Player) sender))) { // Players must share same team
+										
+										pluginMain.SQLManager.setLeader(promotePlayer, true);
 										
 										promotePlayer.sendMessage(prefix + "You have been promoted by " + sender.getName() + "!");
 										sender.sendMessage(prefix + "You promoted " + args[2]);
@@ -156,11 +160,12 @@ public class BrawlCommand implements CommandExecutor {
 				case "invite": 
 					if (args.length == 3) { // Must have all arguments
 						if (!pluginMain.SQLManager.getTeam((Player) sender).equals("") ) { // Sender must be in a team
-							if (!args[2].equals(sender.getName())) { // Sender can't invite themselves
-								if (pluginMain.SQLManager.checkLeader((Player) sender)) { // Sender must be a leader
+							if (pluginMain.SQLManager.checkLeader((Player) sender)) { // Sender must be a leader
+								if (!args[2].equals(sender.getName())) { // Sender can't invite themselves
 									if (players.contains(args[2])) { // Invited player must exist 
 										Player invited = Bukkit.getPlayer(args[2]);
 										if (pluginMain.SQLManager.getTeam(invited).equals("")) { // Other player must not be in a team
+											// TODO: Cannot invite if allready invited
 											
 											String team = pluginMain.SQLManager.getTeam((Player) sender);
 											invitations.put(invited.getUniqueId().toString(), team);
@@ -171,9 +176,10 @@ public class BrawlCommand implements CommandExecutor {
 										        new java.util.TimerTask() {
 										            @Override
 										            public void run() {
-										            	if (invitations.containsKey(invited.getUniqueId().toString())) {
+										            	if (invitations.containsKey(invited.getUniqueId().toString())) { // Only give timeout if player hasn't accepted
 										            		invitations.remove(invited.getUniqueId().toString());
 											                sender.sendMessage(prefix + "Invite to " + args[2] + " timed out!");
+											                invited.sendMessage(prefix + "Invite from " + sender.getName() + " timed out!");
 										            	}
 										            }
 										        }, 
@@ -187,10 +193,10 @@ public class BrawlCommand implements CommandExecutor {
 										sendError(sender, UsageErrors.NONEXISTENTPLAYER);
 									}
 								} else {
-									sendError(sender, UsageErrors.NOTLEADER);
+									sendError(sender, UsageErrors.CANNOTPERFORMONSELF);
 								}
 							} else {
-								sendError(sender, UsageErrors.CANNOTPERFORMONSELF);
+								sendError(sender, UsageErrors.NOTLEADER);
 							}
 						} else {
 							sendError(sender, UsageErrors.NOTINTEAM);
@@ -200,7 +206,42 @@ public class BrawlCommand implements CommandExecutor {
 					}
 					
 					
-					return false;
+					break;
+					
+				case "kick":
+					if (args.length == 3) { // Correct command usage
+						if (!pluginMain.SQLManager.getTeam((Player) sender).equals("")) { // Sender must be in team
+							if (pluginMain.SQLManager.checkLeader((Player) sender)) { // Sender must be a leader
+								if (!args[2].equals(sender.getName())) { // Cannot kick yourself
+									if (players.contains(args[2])) { // Player must exist
+										Player kickedPlayer = Bukkit.getPlayer(args[2]);
+										if (!pluginMain.SQLManager.checkLeader(kickedPlayer)) { // Cannot kick a leader
+											String team = pluginMain.SQLManager.getTeam((Player) sender);
+											
+											kickedPlayer.sendMessage(prefix + "You have been kicked from " + team);
+											pluginMain.SQLManager.setPlayersTeam(kickedPlayer, "");
+											pluginMain.SQLManager.sendToAll(prefix + args[2] + " has been kicked from the team!", team);
+										} else {
+											sendError(sender, UsageErrors.THEYLEADER);
+										}
+									} else {
+										sendError(sender, UsageErrors.NONEXISTENTPLAYER);
+									}
+								} else {
+									sendError(sender, UsageErrors.CANNOTPERFORMONSELF);
+								}
+							} else {
+								sendError(sender, UsageErrors.NOTLEADER);
+							}
+						} else {
+							sendError(sender, UsageErrors.NOTINTEAM);
+						}
+					} else {
+						sendError(sender, UsageErrors.TEAMKICK);
+					}
+					
+					break;
+					
 				default:
 					sendError(sender, UsageErrors.TEAM);
 					return false;
@@ -211,7 +252,6 @@ public class BrawlCommand implements CommandExecutor {
 				
 			case "pedestal":
 				sender.sendMessage(prefix + "Not implemented yet!");
-				pluginMain.SQLManager.countLeaders("a");
 				
 				break;
 				
@@ -221,39 +261,33 @@ public class BrawlCommand implements CommandExecutor {
 				if (args.length == 4) {
 					try {
 						points = Integer.parseInt(args[3]);
+						
+						if (players.contains(args[1])) {
+							switch (args[2]) {
+							case "set":
+								pluginMain.SQLManager.setPoints((Player)sender, points);
+								sender.sendMessage(prefix + "Set player " + args[1] + "'s points to " + points);
+								break;
+							case "add":
+								pluginMain.SQLManager.addPoints((Player)sender, points);
+								sender.sendMessage(prefix + "Added " + points + " points to " + args[1]);
+								break;
+							case "reduce":
+								pluginMain.SQLManager.addPoints((Player)sender, -points);
+								sender.sendMessage(prefix + "Removed " + points + " points from " + args[1]);
+								break;
+							default:
+								sendError(sender, UsageErrors.POINTS);
+								return false;
+							}
+						} else {
+							sendError(sender, UsageErrors.NONEXISTENTPLAYER);
+						}
 					} catch (NumberFormatException e) {
 						sendError(sender, UsageErrors.POINTS);
-						return false;
 					}
-					
 				} else {
 					sendError(sender, UsageErrors.POINTS);
-					return false;
-				}
-				
-				
-				
-				if (players.contains(args[1])) {
-					switch (args[2]) {
-					case "set":
-						pluginMain.SQLManager.setPoints((Player)sender, points);
-						sender.sendMessage(prefix + "Set player " + args[1] + "'s points to " + points);
-						break;
-					case "add":
-						pluginMain.SQLManager.addPoints((Player)sender, points);
-						sender.sendMessage(prefix + "Added " + points + " points to " + args[1]);
-						break;
-					case "reduce":
-						pluginMain.SQLManager.addPoints((Player)sender, -points);
-						sender.sendMessage(prefix + "Removed " + points + " points from " + args[1]);
-						break;
-					default:
-						sendError(sender, UsageErrors.POINTS);
-						return false;
-					}
-				} else {
-					sendError(sender, UsageErrors.NONEXISTENTPLAYER);
-					return false;
 				}
 				
 				break;
@@ -283,6 +317,12 @@ public class BrawlCommand implements CommandExecutor {
 		case INVITE:
 			sender.sendMessage(prefix + "Usage: /brawl invite <player>");
 			break;
+		case TEAMKICK:
+			sender.sendMessage(prefix + "Usage: /brawl team kick <player>");
+			break;
+		case PROMOTE:
+			sender.sendMessage(prefix + "Usage: /brawl promote <player>");
+			break;
 		case WRONGSENDER:
 			sender.sendMessage(prefix + "This command can only be ran by a player!");
 			break;
@@ -310,14 +350,15 @@ public class BrawlCommand implements CommandExecutor {
 		case NOTINTEAM:
 			sender.sendMessage(prefix + "You are not in a team!");
 			break;
-		case PROMOTE:
-			sender.sendMessage(prefix + "Usage: /brawl promote <player>");
-			break;
 		case THEYALREADYINTEAM:
 			sender.sendMessage(prefix + "This player is already in a team!");
 			break;
 		case NOTSAMETEAM:
 			sender.sendMessage(prefix + "This player is not in your team!");
+			break;
+		case THEYLEADER:
+			sender.sendMessage(prefix + "This player is a leader!");
+			break;
 		}
 	}
 }

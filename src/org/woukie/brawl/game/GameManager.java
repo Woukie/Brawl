@@ -1,5 +1,7 @@
 package org.woukie.brawl.game;
 
+import java.util.ArrayList;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -10,7 +12,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.woukie.brawl.Main;
 import org.woukie.brawl.utility.Utility;
 
 
@@ -25,10 +28,14 @@ public class GameManager implements Listener{
 	private String mainButtonLore = ChatColor.GREEN + "Go back to the main menu";
 	private String eventButtonLore = ChatColor.GREEN + "Change how the game plays!";
 	private String teamsButtonLore = ChatColor.GREEN + "Review teams";
-
-	//private int teamsPage;
 	
-	public GameManager(Plugin pluginMain) {
+	private int teamsPageNum;
+	
+	private Main pluginMain;
+	
+	// Handles menus/navigating menus in game
+	public GameManager(Main _pluginMain) {
+		pluginMain = _pluginMain;
 		Bukkit.getPluginManager().registerEvents(this, pluginMain);
 		
 		makeManageMenu();
@@ -77,12 +84,36 @@ public class GameManager implements Listener{
 		teamsMenu.setItem(4, Utility.setName(new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE), mainButtonName, mainButtonLore)); // main menu button
 	}
 	
+	public void updateTeamsMenu() { // Teams menu shows player heads for teams and has navigatable pages
+		ArrayList<String> teams = pluginMain.SQLManager.getTeams();
+		teamsPageNum = Math.max(0, Math.min(teams.size() / 36, teamsPageNum)); // Clamps page num
+		
+		for (int i = 0; i < 36; i++) {
+			int headID = i + teamsPageNum * 36;
+			
+			if (headID < teams.size()) {
+				String team = teams.get(headID);
+				
+				ItemStack teamIcon =  new ItemStack(Material.PLAYER_HEAD, pluginMain.SQLManager.countMembers(team)); 
+				SkullMeta meta = (SkullMeta) teamIcon.getItemMeta();
+				
+				meta.setDisplayName(team);
+				meta.setOwningPlayer(pluginMain.SQLManager.getLeader(team));
+				
+				teamIcon.setItemMeta(meta);
+				teamsMenu.setItem(i + 9, teamIcon);
+			} else {
+				teamsMenu.setItem(i + 9, new ItemStack(Material.AIR));
+			}
+		}
+	}
+	
 	public void openManager(CommandSender sender) {
 		((Player) sender).openInventory(mainMenu);
 	}
 	
 	@EventHandler
-	public void onInventoryClick(InventoryClickEvent event) {
+	public void onInventoryClick(InventoryClickEvent event) { // Handles opening relevant menu
 		Player player = (Player) event.getWhoClicked();
 		ItemStack stackClicked = event.getCurrentItem();
 		Inventory inventory = event.getInventory();
@@ -97,6 +128,7 @@ public class GameManager implements Listener{
 			if (buttonName.equals(eventButtonName)) {
 				player.openInventory(eventsMenu);
 			} else if (buttonName.equals(teamsButtonName)) {
+				updateTeamsMenu();
 				player.openInventory(teamsMenu);
 			}
 		}

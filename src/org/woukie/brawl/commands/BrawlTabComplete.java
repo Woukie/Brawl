@@ -35,6 +35,7 @@ public class BrawlTabComplete implements TabCompleter {
 				a.add("leave");
 				a.add("promote");
 				a.add("invite");
+				a.add("kick");
 				
 				return a;
 			}

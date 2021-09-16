@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="D:/craftbukkit-1.17.1.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="https://jd.bukkit.org/"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/craftbukkit-1.17.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

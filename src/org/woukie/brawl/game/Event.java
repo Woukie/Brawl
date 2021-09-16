@@ -9,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
 public class Event implements Listener{
 	public final Logger Logger = java.util.logging.Logger.getLogger("Minecraft");
 	
-	public String name;
+	public String name; 
 	public Date dateToTrigger;
 	public Boolean death;
 	public ItemStack itemStack;
