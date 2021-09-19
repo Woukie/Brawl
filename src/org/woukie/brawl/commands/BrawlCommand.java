@@ -52,7 +52,7 @@ public class BrawlCommand implements CommandExecutor {
 		switch (args[0].toLowerCase()) {
 			case "manage":
 				
-				pluginMain.gameManager.openManager(sender);
+				pluginMain.menuManager.openManager(sender);
 				break;
 				
 			case "team":

@@ -17,27 +17,29 @@ import org.woukie.brawl.Main;
 import org.woukie.brawl.utility.Utility;
 
 
-public class MenuManager implements Listener{
-	private Inventory mainMenu, eventsMenu, teamsViewer, teamsManager;
+public class MenuManager implements Listener {
+	private Inventory mainMenu, eventsMenu, teamsViewer, teamsManager, teamsSettings;
 	
 	// Menu names (refer to switch at onInventoryClick() for how to change without breaking)
 	private String mainName = "Brawl Main Menu";
 	private String eventsName = "Brawl Events Menu";
 	private String teamsName = "Brawl Teams Menu";
 	
-	// Button names
-	private String mainButtonName = ChatColor.YELLOW + "Main Menu";
-	private String eventButtonName = ChatColor.YELLOW + "Event Manager";
-	private String teamsViewerButtonName = ChatColor.YELLOW + "Teams Viewer";
-	private String teamsManagerButtonName = ChatColor.YELLOW + "Teams Manager";
+	// Button names (uses colour codes due to being in a switch statement later)
+	private final String mainButtonName = "§eMain Menu";
+	private final String eventButtonName = "§eEvent Manager";
+	private final String teamsViewerButtonName = "§eTeams Viewer";
+	private final String teamsManagerButtonName = "§eTeams Manager";
+	private final String teamsSettingsButtonName = "§eTeams Settings";
 
 	// Button descriptions
 	private String mainButtonLore = ChatColor.GREEN + "Go back to the main menu";
 	private String eventButtonLore = ChatColor.GREEN + "Change how the game plays!";
 	private String teamsViewerButtonLore = ChatColor.GREEN + "See and review teams";
-	private String teamsManagerButtonLore = ChatColor.GREEN + "Review team settings";
+	private String teamsManagerButtonLore = ChatColor.GREEN + "Manage teams";
+	private String teamsSettingsButtonLore = ChatColor.GREEN + "Change teams settings";
 	
-	private int teamsPageNum;
+	private int teamsPageNum; // Refresh teams viewer page (auto clamps page number)
 	
 	private Main pluginMain;
 	
@@ -49,6 +51,8 @@ public class MenuManager implements Listener{
 		makeMainMenu();
 		makeEventsMenu();
 		makeTeamsViewer();
+		makeTeamsManager();
+		makeTeamsSettings();
 	}
 	
 	public void makeMainMenu() {
@@ -62,8 +66,8 @@ public class MenuManager implements Listener{
 		}
 		
 		mainMenu.setContents(items);
-		mainMenu.setItem(12, Utility.setName(new ItemStack(Material.EMERALD, 1), eventButtonName, eventButtonLore));
-		mainMenu.setItem(14, Utility.setName(new ItemStack(Material.PLAYER_HEAD, 1), teamsManagerButtonName, teamsManagerButtonLore));
+		mainMenu.setItem(11, Utility.setName(new ItemStack(Material.EMERALD, 1), eventButtonName, eventButtonLore));
+		mainMenu.setItem(15, Utility.setName(new ItemStack(Material.PLAYER_HEAD, 1), teamsManagerButtonName, teamsManagerButtonLore));
 	}
 	
 	public void makeEventsMenu() {
@@ -112,20 +116,37 @@ public class MenuManager implements Listener{
 	}
 	
 	public void makeTeamsManager() { // Menu for setting up permissions/default settings/max players etc. (opens from main menu)
-		teamsManager = Bukkit.createInventory(null, 54, teamsName);
+		teamsManager = Bukkit.createInventory(null, 27, teamsName);
 		
-		ItemStack[] items = new ItemStack[45];
+		ItemStack[] items = new ItemStack[27];
 		
 		for (int i = 0; i < 9; i++) {
 			items[i] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
-			items[i + 36] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
+			items[i + 18] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
 		}
 		
 		teamsManager.setContents(items);
 		
 		teamsManager.setItem(4, Utility.setName(new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE), mainButtonName, mainButtonLore)); // main menu button
-		teamsManager.setItem(20, Utility.setName(new ItemStack(Material.PLAYER_HEAD), teamsViewerButtonName, teamsViewerButtonLore)); // view teams
-		teamsManager.setItem(24, Utility.setName(new ItemStack(Material.REPEATER), "Edit Settings", "(Not implemented)")); // edit settings
+		teamsManager.setItem(11, Utility.setName(new ItemStack(Material.PLAYER_HEAD), teamsViewerButtonName, teamsViewerButtonLore)); // view teams
+		teamsManager.setItem(15, Utility.setName(new ItemStack(Material.REPEATER), teamsSettingsButtonName, teamsSettingsButtonLore)); // edit settings
+	}
+	
+	public void makeTeamsSettings() {
+		teamsSettings = Bukkit.createInventory(null, 54, teamsName);
+		
+		ItemStack[] items = new ItemStack[54];
+		
+		for (int i = 0; i < 9; i++) {
+			items[i] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
+			items[i + 45] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
+		}
+		
+		teamsSettings.setContents(items);
+		
+		teamsSettings.setItem(4, Utility.setName(new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE), teamsManagerButtonName, teamsManagerButtonLore)); // Previous page button
+		teamsSettings.setItem(20, Utility.setName(new ItemStack(Material.BARRIER), ChatColor.YELLOW + "Team commands", ChatColor.GREEN + "Can players do team commands like /br team leave"));
+		teamsSettings.setItem(24, Utility.setName(new ItemStack(Material.DIAMOND_SWORD), ChatColor.YELLOW + "In team PVP", ChatColor.GREEN + "This doesn't do anything"));
 	}
 	
 	public void updateTeamsViewer() { // Teams menu shows player heads for teams and has navigatable pages
@@ -164,27 +185,31 @@ public class MenuManager implements Listener{
 		
 		if (stackClicked == null) return;
 		
-		String buttonName = stackClicked.getItemMeta().getDisplayName();
+		String buttonName = stackClicked.getItemMeta().getDisplayName().toString();
 		
-		if (inventory == teamsViewer | inventory == eventsMenu | inventory == teamsManager | inventory == teamsViewer) {
+		if (inventory == mainMenu | inventory == eventsMenu | inventory == teamsManager | inventory == teamsViewer | inventory == teamsSettings) {
 			event.setCancelled(true);
 			
-			switch (buttonName) { //TODO: fix this weirdness
-				case "Main Menu":
+			switch (buttonName) {
+				case mainButtonName:
 					player.openInventory(mainMenu);
 					break;
 					
-				case "Event Manager":
+				case eventButtonName:
 					player.openInventory(eventsMenu);
 					break;
 					
-				case "Teams Viewer": 
+				case teamsViewerButtonName: 
 					updateTeamsViewer();
 					player.openInventory(teamsViewer);
 					break;
 					
-				case "Teams Manager":
+				case teamsManagerButtonName:
 					player.openInventory(teamsManager);
+					break;
+					
+				case teamsSettingsButtonName:
+					player.openInventory(teamsSettings);
 					break;
 			}
 			
