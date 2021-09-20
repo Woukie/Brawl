@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.woukie.brawl.Main;
 import org.woukie.brawl.utility.Utility;
@@ -39,7 +40,7 @@ public class MenuManager implements Listener {
 	private String teamsManagerButtonLore = ChatColor.GREEN + "Manage teams";
 	private String teamsSettingsButtonLore = ChatColor.GREEN + "Change teams settings";
 	
-	private int teamsPageNum; // Refresh teams viewer page (auto clamps page number)
+	private int teamsPageNum, eventsPageNum; // Teams viewer and events viewer page (both auto clamped when menu updated)
 	
 	private Main pluginMain;
 	
@@ -48,11 +49,13 @@ public class MenuManager implements Listener {
 		pluginMain = _pluginMain;
 		Bukkit.getPluginManager().registerEvents(this, pluginMain);
 		
-		makeMainMenu();
-		makeEventsMenu();
-		makeTeamsViewer();
-		makeTeamsManager();
-		makeTeamsSettings();
+		// TODO: store specific events menus on the event object for easier code management
+		
+		makeMainMenu(); // Root menu for events and teams
+		makeEventsMenu(); // Menu shows all events
+		makeTeamsViewer(); // Menu showing all current teams
+		makeTeamsManager(); // Intermediate menu for teams settings and viewer
+		makeTeamsSettings(); // Menu for changing global settings for teams
 	}
 	
 	public void makeMainMenu() {
@@ -79,7 +82,13 @@ public class MenuManager implements Listener {
 			items[i + 45] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
 		}
 		
+				
 		eventsMenu.setContents(items);
+
+		eventsMenu.setItem(51, Utility.getSkull("https://textures.minecraft.net/texture/2a3b8f681daad8bf436cae8da3fe8131f62a162ab81af639c3e0644aa6abac2f", ChatColor.YELLOW + "Next Page"));
+		eventsMenu.setItem(49, Utility.getSkull("https://textures.minecraft.net/texture/3edd20be93520949e6ce789dc4f43efaeb28c717ee6bfcbbe02780142f716", ChatColor.YELLOW + "Add Event"));
+		eventsMenu.setItem(47, Utility.getSkull("https://textures.minecraft.net/texture/8652e2b936ca8026bd28651d7c9f2819d2e923697734d18dfdb13550f8fdad5f", ChatColor.YELLOW + "Previous Page"));
+
 		eventsMenu.setItem(4, Utility.setName(new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE), mainButtonName, mainButtonLore)); // main menu button
 	}
 
@@ -92,25 +101,10 @@ public class MenuManager implements Listener {
 			items[i + 45] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
 		}
 		
-		ItemStack rightArrow = new ItemStack(Material.PLAYER_HEAD, 1);
-		ItemStack leftArrow = new ItemStack(Material.PLAYER_HEAD, 1);
-		
-		SkullMeta rightArrowMeta = (SkullMeta) rightArrow.getItemMeta();
-		SkullMeta leftArrowMeta = (SkullMeta) leftArrow.getItemMeta();
-		
-		rightArrowMeta.setOwningPlayer(Bukkit.getPlayer("natatos"));
-		rightArrowMeta.setDisplayName(ChatColor.YELLOW + "Next Page");
-		
-		leftArrowMeta.setOwningPlayer(Bukkit.getPlayer("saidus2"));
-		leftArrowMeta.setDisplayName(ChatColor.YELLOW + "Previous Page"); 
-		
-		rightArrow.setItemMeta(rightArrowMeta);
-		leftArrow.setItemMeta(leftArrowMeta);
-		
 		teamsViewer.setContents(items);
 		
-		teamsViewer.setItem(51, rightArrow);
-		teamsViewer.setItem(47, leftArrow);
+		teamsViewer.setItem(51, Utility.getSkull("https://textures.minecraft.net/texture/2a3b8f681daad8bf436cae8da3fe8131f62a162ab81af639c3e0644aa6abac2f", ChatColor.YELLOW + "Next Page"));
+		teamsViewer.setItem(47, Utility.getSkull("https://textures.minecraft.net/texture/8652e2b936ca8026bd28651d7c9f2819d2e923697734d18dfdb13550f8fdad5f", ChatColor.YELLOW + "Previous Page"));
 		
 		teamsViewer.setItem(4, Utility.setName(new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE), teamsManagerButtonName, teamsManagerButtonLore)); // Teams menu button
 	}
@@ -173,6 +167,30 @@ public class MenuManager implements Listener {
 		}
 	}
 	
+	public void updateEventsViewer() { // Updates all icons in the users event viewer for modification/overview of events
+		ArrayList<String> eventIconNames = pluginMain.eventManager.getEventNames();
+		ArrayList<Material> eventIconMaterials = pluginMain.eventManager.getEventIcons();
+		int eventCount = eventIconNames.size();
+		
+		eventsPageNum = Math.max(0, Math.min(eventCount / 36, eventsPageNum)); // Clamps page num
+		
+		for (int i = 0; i < 36; i++) {
+			int iconID = i + eventsPageNum * 36;
+			
+			if (iconID < eventCount) {
+				ItemStack eventIcon =  new ItemStack(eventIconMaterials.get(iconID), 1); 
+				ItemMeta meta = eventIcon.getItemMeta();
+				
+				meta.setDisplayName(eventIconNames.get(iconID));
+				eventIcon.setItemMeta(meta);
+				
+				eventsMenu.setItem(i + 9, eventIcon);
+			} else {
+				teamsViewer.setItem(i + 9, new ItemStack(Material.AIR));
+			}
+		}
+	}
+	
 	public void openManager(CommandSender sender) {
 		((Player) sender).openInventory(mainMenu);
 	}
@@ -182,13 +200,14 @@ public class MenuManager implements Listener {
 		Player player = (Player) event.getWhoClicked();
 		ItemStack stackClicked = event.getCurrentItem();
 		Inventory inventory = event.getInventory();
+		boolean cancelEvent;
 		
 		if (stackClicked == null) return;
 		
 		String buttonName = stackClicked.getItemMeta().getDisplayName().toString();
 		
 		if (inventory == mainMenu | inventory == eventsMenu | inventory == teamsManager | inventory == teamsViewer | inventory == teamsSettings) {
-			event.setCancelled(true);
+			cancelEvent = true;
 			
 			switch (buttonName) {
 				case mainButtonName:
@@ -196,10 +215,13 @@ public class MenuManager implements Listener {
 					break;
 					
 				case eventButtonName:
+					eventsPageNum = 0;
+					updateEventsViewer();
 					player.openInventory(eventsMenu);
 					break;
 					
 				case teamsViewerButtonName: 
+					teamsPageNum = 0;
 					updateTeamsViewer();
 					player.openInventory(teamsViewer);
 					break;
@@ -210,21 +232,34 @@ public class MenuManager implements Listener {
 					
 				case teamsSettingsButtonName:
 					player.openInventory(teamsSettings);
-					break;
+					break;	
 			}
 			
-			// TODO: could be for menu other than team viewer in future
-			if (buttonName.equals("Next Page")) {
-				teamsPageNum++;
-				updateTeamsViewer();
-				player.openInventory(teamsViewer);
+			if (buttonName.equals(ChatColor.YELLOW + "Next Page")) {
+				if (inventory == teamsViewer) {
+					teamsPageNum++;
+					updateTeamsViewer();
+					player.openInventory(teamsViewer);
+				} else {
+					eventsPageNum--;
+					updateTeamsViewer();
+					player.openInventory(eventsMenu);
+				}
 			}
 			
-			if (buttonName.equals("Previous Page")) {
-				teamsPageNum--;
-				updateTeamsViewer();
-				player.openInventory(teamsViewer);
+			if (buttonName.equals(ChatColor.YELLOW + "Previous Page")) {
+				if (inventory == teamsViewer) {
+					teamsPageNum--;
+					updateTeamsViewer();
+					player.openInventory(teamsViewer);
+				} else {
+					eventsPageNum--;
+					updateTeamsViewer();
+					player.openInventory(eventsMenu);
+				}
 			}
-		}
+			
+			event.setCancelled(cancelEvent);
+		}		
 	}
 }
