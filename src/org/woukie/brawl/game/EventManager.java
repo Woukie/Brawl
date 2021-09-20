@@ -48,7 +48,7 @@ public class EventManager extends BukkitRunnable {
 	}
 	
 	public void createEvent(Event event) {
-		
+		events.add(event);
 	}
 	
 	public void saveEvents() {
