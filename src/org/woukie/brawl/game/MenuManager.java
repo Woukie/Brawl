@@ -12,10 +12,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.woukie.brawl.Main;
-import org.woukie.brawl.game.Events.Event;
+import org.woukie.brawl.game.Events.BlankEvent;
 import org.woukie.brawl.utility.Utility;
 
 
@@ -51,8 +50,6 @@ public class MenuManager implements Listener {
 		pluginMain = _pluginMain;
 		Bukkit.getPluginManager().registerEvents(this, pluginMain);
 		
-		// TODO: store specific events menus on the event object for easier code management
-		
 		makeMainMenu(); // Root menu for events and teams
 		makeEventsMenu(); // Menu shows all events
 		makeTeamsViewer(); // Menu showing all current teams
@@ -75,7 +72,6 @@ public class MenuManager implements Listener {
 		mainMenu.setItem(15, Utility.setName(new ItemStack(Material.PLAYER_HEAD, 1), teamsManagerButtonName, teamsManagerButtonLore));
 	}
 	
-	
 	public void makeEventsMenu() {
 		eventsMenu = Bukkit.createInventory(null, 54, eventsName);
 		ItemStack[] items = new ItemStack[54];
@@ -84,7 +80,6 @@ public class MenuManager implements Listener {
 			items[i] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
 			items[i + 45] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1), " ");
 		}
-		
 				
 		eventsMenu.setContents(items);
 
@@ -111,7 +106,6 @@ public class MenuManager implements Listener {
 		
 		teamsViewer.setItem(4, Utility.setName(new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE), teamsManagerButtonName, teamsManagerButtonLore)); // Teams menu button
 	}
-	
 	
 	public void makeTeamsManager() { // Menu for setting up permissions/default settings/max players etc. (opens from main menu)
 		teamsManager = Bukkit.createInventory(null, 27, teamsName);
@@ -171,33 +165,22 @@ public class MenuManager implements Listener {
 		}
 	}
 	
-	
 	public void updateEventsViewer() { // Updates all icons in the users event viewer for modification/overview of events
-		ArrayList<String> eventIconNames = pluginMain.eventManager.getEventNames();
-		ArrayList<Material> eventIconMaterials = pluginMain.eventManager.getEventIcons();
-		int eventCount = eventIconNames.size();
+		int eventCount = pluginMain.eventManager.getEventCount();
 		
-		Bukkit.getLogger().info(eventsPageNum + "");
 		eventsPageNum = Math.max(0, Math.min(eventCount / 36, eventsPageNum)); // Clamps page number
-		Bukkit.getLogger().info(eventsPageNum + "");
 		
 		for (int i = 0; i < 36; i++) {
 			int iconID = i + eventsPageNum * 36;
 			
 			if (iconID < eventCount) {
-				ItemStack eventIcon =  new ItemStack(eventIconMaterials.get(iconID), 1); 
-				ItemMeta meta = eventIcon.getItemMeta();
 				
-				meta.setDisplayName(ChatColor.YELLOW + eventIconNames.get(iconID));
-				eventIcon.setItemMeta(meta);
-				
-				eventsMenu.setItem(i + 9, eventIcon);
+				eventsMenu.setItem(i + 9, pluginMain.eventManager.getEventItemStack(iconID));
 			} else {
 				eventsMenu.setItem(i + 9, new ItemStack(Material.AIR));
 			}
 		}
 	}
-	
 	
 	public void openManager(CommandSender sender) {
 		((Player) sender).openInventory(mainMenu);
@@ -214,7 +197,23 @@ public class MenuManager implements Listener {
 		
 		String buttonName = stackClicked.getItemMeta().getDisplayName().toString();
 		
-		if (inventory == mainMenu | inventory == eventsMenu | inventory == teamsManager | inventory == teamsViewer | inventory == teamsSettings) {
+		if (inventory == eventsMenu) {
+			cancelEvent = true;
+			
+			if (buttonName.equals(addEventButtonName) ) {
+				pluginMain.eventManager.createEvent(new BlankEvent()); // There is no customisation, user does this themselves
+				updateEventsViewer();
+				player.openInventory(eventsMenu);
+			}
+			
+			int slot = event.getSlot();
+			
+			if (slot > 8 && slot < 44) { // If not on edge rows, may be an event, try to open event
+				pluginMain.eventManager.openEvent(player, eventsPageNum * 36 + slot);
+			}
+		}
+		
+		if (inventory == mainMenu | inventory == teamsManager | inventory == teamsViewer | inventory == teamsSettings) {
 			cancelEvent = true;
 			
 			switch (buttonName) {
@@ -240,12 +239,6 @@ public class MenuManager implements Listener {
 					
 				case teamsSettingsButtonName:
 					player.openInventory(teamsSettings);
-					break;	
-					
-				case addEventButtonName:
-					pluginMain.eventManager.createEvent(new Event("Blank Event", Material.STONE));
-					updateEventsViewer();
-					player.openInventory(eventsMenu);
 					break;
 			}
 			
