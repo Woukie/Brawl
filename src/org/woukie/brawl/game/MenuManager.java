@@ -166,7 +166,7 @@ public class MenuManager implements Listener {
 	}
 	
 	public void updateEventsViewer() { // Updates all icons in the users event viewer for modification/overview of events
-		int eventCount = pluginMain.eventManager.getEventCount();
+		int eventCount = EventManager.getInstance().getEventCount();
 		
 		eventsPageNum = Math.max(0, Math.min(eventCount / 36, eventsPageNum)); // Clamps page number
 		
@@ -175,7 +175,7 @@ public class MenuManager implements Listener {
 			
 			if (iconID < eventCount) {
 				
-				eventsMenu.setItem(i + 9, pluginMain.eventManager.getEventItemStack(iconID));
+				eventsMenu.setItem(i + 9, EventManager.getInstance().getEventItemStack(iconID));
 			} else {
 				eventsMenu.setItem(i + 9, new ItemStack(Material.AIR));
 			}
@@ -201,19 +201,19 @@ public class MenuManager implements Listener {
 			cancelEvent = true;
 			
 			if (buttonName.equals(addEventButtonName) ) {
-				pluginMain.eventManager.createEvent(new BlankEvent()); // There is no customisation, user does this themselves
+				EventManager.getInstance().createEvent(new BlankEvent()); // There is no customisation, user does this themselves
 				updateEventsViewer();
 				player.openInventory(eventsMenu);
 			}
 			
 			int slot = event.getSlot();
 			
-			if (slot > 8 && slot < 44) { // If not on edge rows, may be an event, try to open event
-				pluginMain.eventManager.openEvent(player, eventsPageNum * 36 + slot);
+			if (slot > 8 && slot < 45) { // If not on edge rows, may be an event, try to open event
+				EventManager.getInstance().openEventEditor(player, eventsPageNum * 36 + slot - 9);
 			}
 		}
 		
-		if (inventory == mainMenu | inventory == teamsManager | inventory == teamsViewer | inventory == teamsSettings) {
+		if (inventory == mainMenu | inventory == eventsMenu | inventory == teamsManager | inventory == teamsViewer | inventory == teamsSettings) {
 			cancelEvent = true;
 			
 			switch (buttonName) {

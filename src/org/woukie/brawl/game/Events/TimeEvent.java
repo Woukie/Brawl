@@ -1,5 +1,6 @@
 package org.woukie.brawl.game.Events;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.woukie.brawl.game.Actions.Action;
@@ -17,7 +18,6 @@ public class TimeEvent implements Event {
 	@Override
 	public void triggerEvent() {
 		action.trigger();
-		
 	}
 
 	@Override
@@ -35,5 +35,11 @@ public class TimeEvent implements Event {
 	public ItemStack getItemStack() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void openInventory(Player player) {
+		// TODO Auto-generated method stub
+		
 	}
 }

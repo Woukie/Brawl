@@ -2,6 +2,7 @@ package org.woukie.brawl.game;
 
 import java.util.ArrayList;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -10,11 +11,42 @@ import org.woukie.brawl.game.Events.TimeEvent;
 
 // Checks for and executes events
 public class EventManager extends BukkitRunnable {
-	private ArrayList<Event> events;
+	private static EventManager instance = new EventManager(); 
+	// Events in the ArrayList must be able to replace themselves to change their type (e.g. blank event to time event)
+	// This has to be done through the event manager to preserve their order in relation to other events
+	// The constructor for events cannot be specified therefore can't pass reference to EventManager
+	// Which is why this is a singleton
 	
-	public EventManager() {
+	private EventManager() {
 		events = new ArrayList<Event>();
 		loadEvents();
+	}
+	
+	public enum EventNames {
+		TIMEEVENT, BLANKEVENT
+	}
+	
+	public String getEventName(EventNames type) {
+		String returnName = "No Event Name";
+		
+		switch (type) {
+			case BLANKEVENT:
+				returnName = ChatColor.YELLOW + "Blank Event";
+				
+				break;
+			case TIMEEVENT:
+				returnName = ChatColor.YELLOW + "Time Event";
+				
+				break;
+		}
+		
+		return returnName;
+	}
+	
+	private ArrayList<Event> events;
+	
+	public static EventManager getInstance() {
+		return instance;
 	}
 	
 	public int getEventCount() {
@@ -30,8 +62,12 @@ public class EventManager extends BukkitRunnable {
 		}
 	}
 	
-	public void openEvent(Player player, int event) {
-		
+	public void openEventEditor(Player player, int eventID) {
+		try {
+			events.get(eventID).openInventory(player);
+		} catch (IndexOutOfBoundsException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -43,6 +79,16 @@ public class EventManager extends BukkitRunnable {
 				}
 			}
 		}
+	}
+	
+	public void replaceEvent(Event replaced, Event replacer) {
+		if (!events.contains(replaced) && !(replacer instanceof Event)) return;
+		
+		int pos = events.indexOf(replaced);
+		events.remove(pos);
+		events.add(pos, replacer);
+		
+		replaced = null;
 	}
 	
 	public void createEvent(Event event) {

@@ -14,7 +14,6 @@ public final class Main extends JavaPlugin {
 	public final Logger logger = java.util.logging.Logger.getLogger("Minecraft");
 	public MenuManager menuManager;
 	public SQLManager SQLManager;
-	public EventManager eventManager;
 	
 	@Override
 	public void onEnable() {
@@ -22,9 +21,9 @@ public final class Main extends JavaPlugin {
 		new BrawlTabComplete(this);
 		menuManager = new MenuManager(this);
 		SQLManager = new SQLManager(this, logger);
-		eventManager = new EventManager();
 		
-		eventManager.runTaskTimer(this, 20, 20);
+		EventManager.getInstance().runTaskTimer(this, 20, 20);
+		EventManager.getInstance().loadEvents();
 		
 		logger.log(Level.INFO, "[Brawl] Brawl v0.1 by Woukie enabled!");
 	}
@@ -32,7 +31,7 @@ public final class Main extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		SQLManager.quit();
-		eventManager.saveEvents();
+		EventManager.getInstance().saveEvents();
 		logger.log(Level.INFO, "[Brawl] Brawl v0.1 by Woukie saved and disabled.");
 	}
 }
