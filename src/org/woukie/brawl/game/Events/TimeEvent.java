@@ -1,23 +1,39 @@
 package org.woukie.brawl.game.Events;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.woukie.brawl.game.Actions.Action;
+import org.woukie.brawl.utility.Utility;
 
 public class TimeEvent implements Event {
-	private Action action;
-	public Long time; // Time in milliseconds, determines when the action is triggered
+	private ItemStack icon;
+	private Action action; // May be null
+	private Inventory menu;
+	
+	public Long lastTimeScanned; // Ensures event is only triggered once
+	public Long time; // Time in milliseconds, (used by EventManager) determines when the action is triggered
 	// The difference, measured in milliseconds, between the current time and midnight, January 1, 1970 UTC.
 
-	public TimeEvent(Long time, Action action, String name) {
-		this.time = time;
-		this.action = action;
+	public TimeEvent() {
+		lastTimeScanned = 0L;
+		time = 10L;
+		
+		makeMenu();
+		icon = Utility.setName(new ItemStack(Material.CLOCK), ChatColor.YELLOW + "Time Event");
+	}
+	
+	private void makeMenu() {
+		menu = Bukkit.createInventory(null, 27);
 	}
 
 	@Override
 	public void triggerEvent() {
-		action.trigger();
+		if (action != null) action.trigger();
 	}
 
 	@Override
@@ -33,13 +49,11 @@ public class TimeEvent implements Event {
 
 	@Override
 	public ItemStack getItemStack() {
-		// TODO Auto-generated method stub
-		return null;
+		return icon;
 	}
 
 	@Override
 	public void openInventory(Player player) {
-		// TODO Auto-generated method stub
-		
+		player.openInventory(menu);
 	}
 }

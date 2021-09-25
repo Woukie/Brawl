@@ -193,6 +193,8 @@ public class MenuManager implements Listener {
 		Inventory inventory = event.getInventory();
 		boolean cancelEvent;
 		
+		EventManager.getInstance().passClickToEvents(event); // Registering events as listeners would not work
+		
 		if (stackClicked == null) return;
 		
 		String buttonName = stackClicked.getItemMeta().getDisplayName().toString();

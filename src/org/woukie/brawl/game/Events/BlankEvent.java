@@ -37,9 +37,9 @@ public class BlankEvent implements Event {
 			contents[i + 18] = Utility.setName(new ItemStack(Material.GRAY_STAINED_GLASS_PANE), " ");
 		}
 		
-		menu.setItem(13, Utility.setName(new ItemStack(Material.CLOCK, 1), "§eTime Event"));
-		
 		menu.setContents(contents);
+		
+		menu.setItem(13, Utility.setName(new ItemStack(Material.CLOCK, 1), "§eTime Event"));
 //		menu.setItem(22, Utility.setName(new ItemStack(), " "));
 	}
 	
@@ -54,10 +54,11 @@ public class BlankEvent implements Event {
 	}
 
 	@Override
-	public void onInventoryClick(InventoryClickEvent event) { // Identify event by
+	public void onInventoryClick(InventoryClickEvent event) { 
 		Player player = (Player) event.getWhoClicked();
 		ItemStack stackClicked = event.getCurrentItem();
 		Inventory inventory = event.getInventory();
+		player.sendMessage("AA");
 		
 		if (stackClicked == null) return;
 		
@@ -65,10 +66,13 @@ public class BlankEvent implements Event {
 			player.openInventory(menu);
 		}
 		
+		
 		if (inventory == menu) {
+			event.setCancelled(true);
 			switch (stackClicked.getItemMeta().getDisplayName()) {
 			case "§eTime Event":
-				EventManager.getInstance().replaceEvent(this, new TimeEvent(1000L, null, ChatColor.YELLOW + "Time Event"));
+				EventManager.getInstance().replaceEvent(this, new TimeEvent());
+				menu.getViewers().forEach(i -> i.closeInventory());
 				break;
 
 			default:
