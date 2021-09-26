@@ -13,6 +13,7 @@ public interface Event { // Must handle menu interactions itself (called by even
 	public void setAction(Action action);
 	public ItemStack getItemStack(); // < TODO: Could be static
 	public void openInventory(Player player);
+	public void closeInventory();
 	
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent event); // Inheriting classes must register themselves as an event handler

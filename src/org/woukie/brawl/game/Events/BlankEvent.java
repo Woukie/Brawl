@@ -58,21 +58,16 @@ public class BlankEvent implements Event {
 		Player player = (Player) event.getWhoClicked();
 		ItemStack stackClicked = event.getCurrentItem();
 		Inventory inventory = event.getInventory();
-		player.sendMessage("AA");
 		
 		if (stackClicked == null) return;
-		
-		if (stackClicked == icon) { // Need to compare memory location as itemStack may have no unique identification
-			player.openInventory(menu);
-		}
-		
 		
 		if (inventory == menu) {
 			event.setCancelled(true);
 			switch (stackClicked.getItemMeta().getDisplayName()) {
 			case "§eTime Event":
-				EventManager.getInstance().replaceEvent(this, new TimeEvent());
-				menu.getViewers().forEach(i -> i.closeInventory());
+				TimeEvent timeEvent = new TimeEvent();
+				EventManager.getInstance().replaceEvent(this, timeEvent);
+				
 				break;
 
 			default:
@@ -89,5 +84,12 @@ public class BlankEvent implements Event {
 	@Override
 	public void openInventory(Player player) {
 		player.openInventory(menu);
+	}
+
+	@Override
+	public void closeInventory() {
+		for (int i = 0; i < menu.getViewers().size(); i++) {
+			menu.getViewers().get(i).closeInventory();
+		}
 	}
 }

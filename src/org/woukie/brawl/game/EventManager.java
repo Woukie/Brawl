@@ -77,6 +77,8 @@ public class EventManager extends BukkitRunnable {
 		events.remove(pos);
 		events.add(pos, replacer);
 		
+		replaced.closeInventory();
+		
 		replaced = null;
 	}
 	
